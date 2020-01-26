@@ -5,24 +5,47 @@ import PackageDescription
 
 let package = Package(
     name: "GRPCFlatbuffers",
+    platforms: [
+        .iOS(.v11),
+        .macOS(.v10_14),
+    ],
     products: [
-        // Products define the executables and libraries produced by a package, and make them visible to other packages.
-        .library(
-            name: "GRPCFlatbuffers",
-            targets: ["GRPCFlatbuffers"]),
     ],
     dependencies: [
-        // Dependencies declare other packages that this package depends on.
-        // .package(url: /* package url */, from: "1.0.0"),
+        // Main SwiftNIO package
+        .package(path: "../flatbuffers/swift"),
+        .package(url: "https://github.com/grpc/grpc-swift.git", from: "1.0.0-alpha.9")
     ],
     targets: [
-        // Targets are the basic building blocks of a package. A target can define a module or a test suite.
-        // Targets can depend on other targets in this package, and on products in packages which this package depends on.
+        // Model for the HelloWorld example
         .target(
-            name: "GRPCFlatbuffers",
-            dependencies: []),
-        .testTarget(
-            name: "GRPCFlatbuffersTests",
-            dependencies: ["GRPCFlatbuffers"]),
+          name: "Model",
+          dependencies: [
+            "GRPC",
+            "FlatBuffers"
+          ],
+          path: "Sources/Model"
+        ),
+
+        // Client for the HelloWorld example
+        .target(
+          name: "client",
+          dependencies: [
+            "GRPC",
+            "Model",
+          ],
+          path: "Sources/client"
+        ),
+
+        // Server for the HelloWorld example
+        .target(
+          name: "server",
+          dependencies: [
+            "GRPC",
+            "Model",
+          ],
+          path: "Sources/server"
+        ),
+
     ]
 )
