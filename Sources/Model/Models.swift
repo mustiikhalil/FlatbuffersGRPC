@@ -11,95 +11,17 @@ import SwiftProtobuf
 import FlatBuffers
 import Foundation
 
-public struct HelloFlatRequest: Message {
-    typealias T = HelloRequest
-    public var o: HelloRequest!
-    public var data: Data!
-    
-    public static var protoMessageName: String { "HelloFlatRequest" }
-    public var unknownFields: UnknownStorage
-    
-    public init(data _data: Data) { unknownFields = UnknownStorage(); data = _data }
-    public init() { unknownFields = UnknownStorage() }
-    
-    public mutating func getRoot(grpcData: Data) {
-        o = HelloRequest.getRootAsHelloRequest(bb: ByteBuffer(data: grpcData))
-    }
-    
-    mutating public func decodeMessage<D>(decoder: inout D) throws where D : Decoder {
-        print("Decode")
-    }
-
-    public func traverse<V>(visitor: inout V) throws where V : Visitor {
-        print("traverse")
-    }
-    
-    func serializedData(partial: Bool = false) throws -> Data {
-        if !partial {
-            throw BinaryEncodingError.missingRequiredFields
-        }
-        print("SHOULD BE HERE!!")
-        return data
-    }
-    
-    public mutating func merge(serializedData data: Data, extensions: ExtensionMap? = nil, partial: Bool = false, options: BinaryDecodingOptions = BinaryDecodingOptions()) throws {
-        guard !data.isEmpty else {
-            throw FlatbufferErrors.emptyData
-        }
-        getRoot(grpcData: data)
-    }
-
-    public func isEqualTo(message: Message) -> Bool { return message.unknownFields == unknownFields  }
-}
-
-public struct HelloFlatResponse: Message {
-    public var data: Data!
-    
-    typealias T = HelloReply
-    public var o: HelloReply!
-    
-    public static var protoMessageName: String { "HelloFlatResponse" }
-    public var unknownFields: UnknownStorage
-    
-    
-    public init(data _data: Data) { unknownFields = UnknownStorage(); data = _data }
-    public init() { unknownFields = UnknownStorage() }
-    
-    public mutating func getRoot(grpcData: Data) {
-        o = HelloReply.getRootAsHelloReply(bb: ByteBuffer(data: grpcData))
-    }
-    
-    public mutating func merge(serializedData data: Data, extensions: ExtensionMap? = nil, partial: Bool = false, options: BinaryDecodingOptions = BinaryDecodingOptions()) throws {
-        guard !data.isEmpty else {
-            throw FlatbufferErrors.emptyData
-        }
-        print("Merge")
-        getRoot(grpcData: data)
-    }
-    
-    func serializedData(partial: Bool = false) throws -> Data {
-        if !partial {
-            throw BinaryEncodingError.missingRequiredFields
-        }
-        print("SHOULD BE HERE!!")
-        return data
-    }
-    
-    mutating public func decodeMessage<D>(decoder: inout D) throws where D : Decoder {}
-
-    public func traverse<V>(visitor: inout V) throws where V : Visitor {
-        try visitor.visitSingularBytesField(value: data, fieldNumber: 1)
-    }
-
-    public func isEqualTo(message: Message) -> Bool { return message.unknownFields == unknownFields }
-}
-
-
 public struct HelloRequest: FlatBufferObject {
+    
+    public var data: Data! {
+        let data =  Data(bytes: _accessor.bb.memory, count: Int(_accessor.bb.size))
+        return data
+    }
+    
     private var _accessor: Table
     public static func getRootAsHelloRequest(bb: ByteBuffer) -> HelloRequest { return HelloRequest(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
-    private init(_ t: Table) { _accessor = t }
+    internal init(_ t: Table) { _accessor = t }
     public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
 
     public var name: String? { let o = _accessor.offset(4); return o == 0 ? nil : _accessor.string(at: o) }
@@ -116,10 +38,15 @@ public struct HelloRequest: FlatBufferObject {
 }
 
 public struct HelloReply: FlatBufferObject {
+    
+    public var data: Data! {
+        let data = Data(bytes: _accessor.bb.memory, count: Int(_accessor.bb.size))
+        return data
+    }
     private var _accessor: Table
     public static func getRootAsHelloReply(bb: ByteBuffer) -> HelloReply { return HelloReply(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
-    private init(_ t: Table) { _accessor = t }
+    internal init(_ t: Table) { _accessor = t }
     public init(_ bb: ByteBuffer, o: Int32) { _accessor = Table(bb: bb, position: o) }
 
     public var message: String? { let o = _accessor.offset(4); return o == 0 ? nil : _accessor.string(at: o) }
@@ -134,4 +61,7 @@ public struct HelloReply: FlatBufferObject {
         return HelloReply.endHelloReply(fbb, start: start)
     }
 }
+
+extension HelloReply: GRPCFlatBufPayload {}
+extension HelloRequest: GRPCFlatBufPayload {}
 

@@ -12,9 +12,9 @@ let package = Package(
     products: [
     ],
     dependencies: [
-        // Main SwiftNIO package
-        .package(path: "../flatbuffers/swift"),
-        .package(url: "https://github.com/grpc/grpc-swift.git", from: "1.0.0-alpha.9")
+    // Main SwiftNIO package
+    .package(path: "../flatbuffers/swift"),
+    .package(url: "https://github.com/mustiikhalil/grpc-swift.git", .branch("add-ability-to-use-different-payloads"))
     ],
     targets: [
         // Model for the HelloWorld example

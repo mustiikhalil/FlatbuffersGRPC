@@ -26,10 +26,9 @@ import NIO
 import NIOHTTP1
 import FlatBuffers
 
-
 /// Usage: instantiate Helloworld_GreeterServiceClient, then call methods of this protocol to make API calls.
 public protocol Helloworld_GreeterService {
-  func sayHello(_ request: HelloFlatRequest, callOptions: CallOptions?) -> UnaryCall<HelloFlatRequest, HelloFlatResponse>
+  func sayHello(_ request: HelloRequest, callOptions: CallOptions?) -> UnaryCall<HelloRequest, HelloReply>
 }
 
 public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_GreeterService {
@@ -52,7 +51,7 @@ public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_Greet
   ///   - request: Request to send to SayHello.
   ///   - callOptions: Call options; `self.defaultCallOptions` is used if `nil`.
   /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
-  public func sayHello(_ request: HelloFlatRequest, callOptions: CallOptions? = nil) -> UnaryCall<HelloFlatRequest, HelloFlatResponse> {
+  public func sayHello(_ request: HelloRequest, callOptions: CallOptions? = nil) -> UnaryCall<HelloRequest, HelloReply> {
     return self.makeUnaryCall(path: "/helloworld.Greeter/SayHello",
                               request: request,
                               callOptions: callOptions ?? self.defaultCallOptions)
@@ -62,7 +61,7 @@ public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_Greet
 //
 /// To build a server, implement a class that conforms to this protocol.
 public protocol Helloworld_GreeterProvider: CallHandlerProvider {
-  func sayHello(request: HelloFlatRequest, context: StatusOnlyCallContext) -> EventLoopFuture<HelloFlatResponse>
+  func sayHello(request: HelloRequest, context: StatusOnlyCallContext) -> EventLoopFuture<HelloReply>
 }
 
 extension Helloworld_GreeterProvider {
@@ -82,5 +81,4 @@ extension Helloworld_GreeterProvider {
     }
   }
 }
-
 

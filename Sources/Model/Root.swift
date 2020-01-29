@@ -1,15 +1,17 @@
 import GRPC
-import SwiftProtobuf
+import NIO
 import FlatBuffers
 import Foundation
 
-protocol Root: Message {
-    associatedtype T
-    var o: T! { get }
-    var data: Data! { get set }
-    mutating func getRoot(grpcData: Data)
-}
+public protocol GRPCFlatBufPayload: GRPCPayload, FlatBufferObject {}
 
-enum FlatbufferErrors: Error {
-    case emptyData
+public extension GRPCFlatBufPayload {
+    init(serializedByteBuffer: inout NIO.ByteBuffer) throws {
+        let bb = FlatBuffers.ByteBuffer(data: serializedByteBuffer.readData(length: serializedByteBuffer.readableBytes)!)
+        self.init(bb, o: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))
+    }
+    
+    func serialize(into buffer: inout NIO.ByteBuffer) throws {
+        buffer.writeBytes(data)
+    }
 }

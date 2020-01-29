@@ -29,18 +29,16 @@ LoggingSystem.bootstrap {
 func greet(name: String?, client greeter: Helloworld_GreeterServiceClient) {
     // Form the request with the name, if one was provided.
     let builder = FlatBufferBuilder()
-    let name = builder.create(string: "Mustii??")
+    let name = builder.create(string: "Mustii")
     let root = HelloRequest.createHelloRequest(builder, offsetOfName: name)
     builder.finish(offset: root)
-    let request = HelloFlatRequest(data: builder.data)
-    print("do we even make the request??")
+    let request = HelloRequest.getRootAsHelloRequest(bb: FlatBuffers.ByteBuffer(bytes: builder.sizedByteArray))
     // Make the RPC call to the server.
     let sayHello = greeter.sayHello(request)
-    print("do we crash here??")
     // wait() on the response to stop the program from exiting before the response is received.
     do {
         let response = try sayHello.response.wait()
-        print("Greeter received: \(response.o.message)")
+        print("Greeter received: \(response.message)")
     } catch {
         print("Greeter failed: \(error)")
     }

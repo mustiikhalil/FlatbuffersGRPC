@@ -14,24 +14,17 @@ import Model
 
 class GreeterProvider: Helloworld_GreeterProvider {
   func sayHello(
-    request: HelloFlatRequest,
+    request: HelloRequest,
     context: StatusOnlyCallContext
-  ) -> EventLoopFuture<HelloFlatResponse> {
-    print("server id")
+  ) -> EventLoopFuture<HelloReply> {
     
-    let recipient: String
-    if let object = request.o?.name {
-        recipient = object
-    } else {
-        recipient = "UNKNOWN ISSUE"
-    }
+    let recipient = request.name ?? "Stranger"
     
     let builder = FlatBufferBuilder()
     let off = builder.create(string: recipient)
     let root = HelloReply.createHelloReply(builder, offsetOfMessage: off)
     builder.finish(offset: root)
-    let response = HelloFlatResponse(data: builder.data)
-    return context.eventLoop.makeSucceededFuture(response)
+    return context.eventLoop.makeSucceededFuture(HelloReply.getRootAsHelloReply(bb: FlatBuffers.ByteBuffer(bytes: builder.sizedByteArray)))
   }
 }
 
