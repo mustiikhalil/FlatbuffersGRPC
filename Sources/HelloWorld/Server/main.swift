@@ -10,7 +10,7 @@ import GRPC
 import NIO
 import FlatBuffers
 import Logging
-import Model
+import FLATHelloWorldModel
 
 class GreeterProvider: Helloworld_GreeterProvider {
   func sayHello(

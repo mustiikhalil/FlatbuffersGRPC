@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import GRPC
-import Model
+import FLATHelloWorldModel
 import NIO
 import Logging
 import FlatBuffers
@@ -29,10 +29,10 @@ LoggingSystem.bootstrap {
 func greet(name: String?, client greeter: Helloworld_GreeterServiceClient) {
     // Form the request with the name, if one was provided.
     let builder = FlatBufferBuilder()
-    let name = builder.create(string: "Mustii")
+    let name = builder.create(string: name ?? "Hi")
     let root = HelloRequest.createHelloRequest(builder, offsetOfName: name)
     builder.finish(offset: root)
-    let request = HelloRequest.getRootAsHelloRequest(bb: FlatBuffers.ByteBuffer(bytes: builder.sizedByteArray))
+    let request = HelloRequest.getRootAsHelloRequest(bb: builder.buffer)
     // Make the RPC call to the server.
     let sayHello = greeter.sayHello(request)
     // wait() on the response to stop the program from exiting before the response is received.

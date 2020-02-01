@@ -12,40 +12,76 @@ let package = Package(
     products: [
     ],
     dependencies: [
-    // Main SwiftNIO package
-    .package(path: "../flatbuffers/swift"),
-    .package(url: "https://github.com/mustiikhalil/grpc-swift.git", .branch("add-ability-to-use-different-payloads"))
+        // Main SwiftNIO package
+        .package(path: "../flatbuffers/swift"),
+        .package(url: "https://github.com/mustiikhalil/grpc-swift.git", .branch("add-ability-to-use-different-payloads"))
     ],
     targets: [
         // Model for the HelloWorld example
         .target(
-          name: "Model",
-          dependencies: [
-            "GRPC",
-            "FlatBuffers"
-          ],
-          path: "Sources/Model"
+            name: "FlatBuffersGRPC",
+            dependencies: [
+                "GRPC",
+                "FlatBuffers"
+            ],
+            path: "Sources/FlatBuffersGRPC"
         ),
-
+        .target(
+            name: "FLATHelloWorldModel",
+            dependencies: [
+                "GRPC",
+                "FlatBuffers",
+                "FlatBuffersGRPC"
+            ],
+            path: "Sources/HelloWorld/Model"
+        ),
+        
         // Client for the HelloWorld example
         .target(
-          name: "client",
-          dependencies: [
-            "GRPC",
-            "Model",
-          ],
-          path: "Sources/client"
+            name: "FLATHelloWorldClient",
+            dependencies: [
+                "GRPC",
+                "FLATHelloWorldModel",
+            ],
+            path: "Sources/HelloWorld/Client"
         ),
-
+        
         // Server for the HelloWorld example
         .target(
-          name: "server",
-          dependencies: [
-            "GRPC",
-            "Model",
-          ],
-          path: "Sources/server"
+            name: "FLATHelloWorldServer",
+            dependencies: [
+                "GRPC",
+                "FLATHelloWorldModel",
+            ],
+            path: "Sources/HelloWorld/Server"
         ),
-
+        
+        .target(
+            name: "FLATRouteGuideModel",
+            dependencies: [
+                "GRPC",
+                "FlatBuffers",
+                "FlatBuffersGRPC"
+            ],
+            path: "Sources/RouteGuide/Model"
+        ),
+        
+        .target(
+            name: "FLATRouteGuideClient",
+            dependencies: [
+                "GRPC",
+                "FLATRouteGuideModel",
+            ],
+            path: "Sources/RouteGuide/Client"
+        ),
+        
+        .target(
+            name: "FLATRouteGuideServer",
+            dependencies: [
+                "GRPC",
+                "FLATRouteGuideModel",
+            ],
+            path: "Sources/RouteGuide/Server"
+        )
     ]
 )

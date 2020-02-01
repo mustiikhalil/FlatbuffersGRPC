@@ -13,10 +13,7 @@ import Foundation
 
 public struct HelloRequest: FlatBufferObject {
     
-    public var data: Data! {
-        let data =  Data(bytes: _accessor.bb.memory, count: Int(_accessor.bb.size))
-        return data
-    }
+    public var buffer: ByteBuffer! { return _accessor.bb }
     
     private var _accessor: Table
     public static func getRootAsHelloRequest(bb: ByteBuffer) -> HelloRequest { return HelloRequest(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
@@ -39,10 +36,8 @@ public struct HelloRequest: FlatBufferObject {
 
 public struct HelloReply: FlatBufferObject {
     
-    public var data: Data! {
-        let data = Data(bytes: _accessor.bb.memory, count: Int(_accessor.bb.size))
-        return data
-    }
+    public var buffer: ByteBuffer! { return _accessor.bb }
+    
     private var _accessor: Table
     public static func getRootAsHelloReply(bb: ByteBuffer) -> HelloReply { return HelloReply(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
@@ -61,7 +56,3 @@ public struct HelloReply: FlatBufferObject {
         return HelloReply.endHelloReply(fbb, start: start)
     }
 }
-
-extension HelloReply: GRPCFlatBufPayload {}
-extension HelloRequest: GRPCFlatBufPayload {}
-

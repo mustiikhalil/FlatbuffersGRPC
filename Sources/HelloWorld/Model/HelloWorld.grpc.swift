@@ -20,6 +20,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+import FlatBuffersGRPC
 import Foundation
 import GRPC
 import NIO
@@ -82,3 +83,5 @@ extension Helloworld_GreeterProvider {
   }
 }
 
+extension HelloReply: GRPCFlatBufPayload {}
+extension HelloRequest: GRPCFlatBufPayload {}

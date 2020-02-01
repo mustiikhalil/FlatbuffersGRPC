@@ -1,7 +1,6 @@
 import GRPC
 import NIO
 import FlatBuffers
-import Foundation
 
 public protocol GRPCFlatBufPayload: GRPCPayload, FlatBufferObject {}
 
@@ -12,6 +11,6 @@ public extension GRPCFlatBufPayload {
     }
     
     func serialize(into buffer: inout NIO.ByteBuffer) throws {
-        buffer.writeBytes(data)
+        buffer.writeBytes(UnsafeRawBufferPointer(start: self.buffer!.memory.advanced(by: self.buffer.reader), count: Int(self.buffer.size)))
     }
 }
