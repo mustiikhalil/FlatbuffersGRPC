@@ -32,11 +32,11 @@ extension Point: Hashable {
 }
 
 class RouteGuideProvider: Routeguide_RouteGuideProvider {
-  private let features: Features
+  private let features: [Feature]
   private var notes: [Point: [RouteNote]] = [:]
   private var lock = Lock()
 
-  init(features: Features) {
+  init(features: [Feature]) {
     self.features = features
   }
 
@@ -65,19 +65,15 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
     let right = max(request.lo!.longitude, request.hi!.longitude)
     let top = max(request.lo!.latitude, request.hi!.latitude)
     let bottom = max(request.lo!.latitude, request.hi!.latitude)
-    var indexs: [Int32] = []
-    for index in 0..<self.features.featureCount {
-        guard let feature = features.feature(at: index) else { continue }
-        guard !(feature.name?.isEmpty ?? true) else { continue }
-        guard let location = feature.location else { continue }
-        guard location.longitude >= left
+
+    self.features.filter { (feature) -> Bool in
+       guard let location = feature.location else { return false }
+        return location.longitude >= left
             && location.longitude <= right
             && location.latitude >= bottom
-            && location.latitude <= top else { continue }
-        indexs.append(index)
-    }
-    indexs.forEach {
-        _ = context.sendResponse(features.feature(at: $0)!)
+            && location.latitude <= top
+    }.forEach {
+        _ = context.sendResponse($0)
     }
 
     return context.eventLoop.makeSucceededFuture(.ok)
@@ -113,9 +109,9 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
 
       case .end:
         let seconds = Date().timeIntervalSince(startTime)
-        let root = RouteSummary.createRouteSummary(builder, pointCount: pointCount, featureCount: featureCount, distance: Int32(seconds), elapsedTime: Int32(distance))
+        let root = RouteSummary.createRouteSummary(builder, pointCount: pointCount, featureCount: featureCount, distance: Int32(distance), elapsedTime: Int32(seconds))
         builder.finish(offset: root)
-        context.responsePromise.succeed(RouteSummary.getRootAsRouteSummary(bb: builder.buffer))
+        context.responsePromise.succeed(RouteSummary.getRootAsRouteSummary(bb: builder.sizedBuffer))
       }
     })
   }
@@ -162,10 +158,12 @@ extension RouteGuideProvider {
 
   /// Returns a feature at the given location or an unnamed feature if none exist at that location.
   private func checkFeature(at location: Point) -> Feature {
+    for feature in self.features {
+        if feature.location?.latitude == location.latitude && feature.location?.longitude == location.longitude {
+            return feature
+        }
+    }
     return buildFeature(location: location)
-//        self.features.first(where: {
-//        return $0.location?.latitude == location.latitude && $0.location?.longitude == location.longitude
-//    }) ?? buildFeature(location: location)
   }
     
     private func buildFeature(location: Point) -> Feature {
@@ -174,7 +172,7 @@ extension RouteGuideProvider {
         let point = Point.createPoint(builder, latitude: location.latitude, longitude: location.longitude)
         let root = Feature.createFeature(builder, offsetOfName: off, offsetOfLocation: point)
         builder.finish(offset: root)
-        return Feature.getRootAsFeature(bb: builder.buffer)
+        return Feature.getRootAsFeature(bb: builder.sizedBuffer)
     }
 }
 

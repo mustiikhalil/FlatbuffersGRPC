@@ -4,6 +4,7 @@ import FlatBuffers
 
 public struct Point: FlatBufferObject {
     public var buffer: ByteBuffer! { _accessor.bb }
+    public var position: Int! { Int(_accessor.postion) }
 	private var _accessor: Table
 	public static func getRootAsPoint(bb: ByteBuffer) -> Point { return Point(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
@@ -28,6 +29,7 @@ public struct Point: FlatBufferObject {
 
 public struct Rectangle: FlatBufferObject {
     public var buffer: ByteBuffer! { _accessor.bb }
+    public var position: Int! { Int(_accessor.postion) }
 	private var _accessor: Table
 	public static func getRootAsRectangle(bb: ByteBuffer) -> Rectangle { return Rectangle(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
@@ -52,6 +54,7 @@ public struct Rectangle: FlatBufferObject {
 
 public struct Feature: FlatBufferObject {
     public var buffer: ByteBuffer! { _accessor.bb }
+    public var position: Int! { Int(_accessor.postion) }
 	private var _accessor: Table
 	public static func getRootAsFeature(bb: ByteBuffer) -> Feature { return Feature(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
@@ -77,6 +80,7 @@ public struct Feature: FlatBufferObject {
 
 public struct Features: FlatBufferObject {
     public var buffer: ByteBuffer! { _accessor.bb }
+    public var position: Int! { Int(_accessor.postion) }
 	private var _accessor: Table
 	public static func getRootAsFeatures(bb: ByteBuffer) -> Features { return Features(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
@@ -98,6 +102,8 @@ public struct Features: FlatBufferObject {
 
 public struct RouteNote: FlatBufferObject {
     public var buffer: ByteBuffer! { _accessor.bb }
+    public var position: Int! { Int(_accessor.postion) }
+    
 	private var _accessor: Table
 	public static func getRootAsRouteNote(bb: ByteBuffer) -> RouteNote { return RouteNote(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 
@@ -123,6 +129,8 @@ public struct RouteNote: FlatBufferObject {
 
 public struct RouteSummary: FlatBufferObject {
     public var buffer: ByteBuffer! { _accessor.bb }
+    public var position: Int! { Int(_accessor.postion) }
+    
 	private var _accessor: Table
 	public static func getRootAsRouteSummary(bb: ByteBuffer) -> RouteSummary { return RouteSummary(Table(bb: bb, position: Int32(bb.read(def: UOffset.self, position: bb.reader)) + Int32(bb.reader))) }
 

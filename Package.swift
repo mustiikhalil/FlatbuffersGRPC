@@ -14,7 +14,7 @@ let package = Package(
     dependencies: [
         // Main SwiftNIO package
         .package(path: "../flatbuffers/swift"),
-        .package(url: "https://github.com/mustiikhalil/grpc-swift.git", .branch("add-ability-to-use-different-payloads"))
+        .package(url: "https://github.com/grpc/grpc-swift.git", .branch("nio"))
     ],
     targets: [
         // Model for the HelloWorld example

@@ -18,7 +18,7 @@ public struct _Feature_: Codable {
 }
 
 ///// Loads the features from `route_guide_db.json`, assumed to be in the directory above this file.
-public func loadFeatures() throws -> Features {
+public func loadFeatures() throws -> [Feature] {
     let url = URL(fileURLWithPath: #file)
         .deletingLastPathComponent()  // main.swift
         .deletingLastPathComponent()  // Server/
@@ -27,16 +27,15 @@ public func loadFeatures() throws -> Features {
     let data = try Data(contentsOf: url)
     let features = try JSONDecoder().decode([_Feature_].self, from: data)
     let builder = FlatBufferBuilder()
-    var flatFeatures: [Offset<UOffset>] = []
+    var flatFeatures: [Feature] = []
     
     features.forEach { (f) in
         let str = builder.create(string: f.name)
         let point = Point.createPoint(builder, latitude: f.location.latitude, longitude: f.location.longitude)
         let feature = Feature.createFeature(builder, offsetOfName: str, offsetOfLocation: point)
-        flatFeatures.append(feature)
+        builder.finish(offset: feature)
+        flatFeatures.append(Feature.getRootAsFeature(bb: builder.sizedBuffer))
+        builder.clear()
     }
-    let vector = builder.createVector(ofOffsets: flatFeatures)
-    let root = Features.createFeatures(builder, vectorOfFeature: vector)
-    builder.finish(offset: root)
-    return Features.getRootAsFeatures(bb: builder.buffer)
+    return flatFeatures
 }

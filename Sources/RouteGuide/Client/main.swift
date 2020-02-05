@@ -44,7 +44,7 @@ func getFeature(using client: Routeguide_RouteGuideServiceClient, latitude: Int,
     let builder = FlatBufferBuilder()
     let root = Point.createPoint(builder, latitude: Int32(latitude), longitude: Int32(longitude))
     builder.finish(offset: root)
-    let call = client.getFeature(Point.getRootAsPoint(bb: builder.buffer))
+    let call = client.getFeature(Point.getRootAsPoint(bb: builder.sizedBuffer))
     let feature: Feature
     
     do {
@@ -80,7 +80,7 @@ func listFeatures(
     let rec = Rectangle.createRectangle(builder, offsetOfLo: lo, offsetOfHi: hi)
     builder.finish(offset: rec)
     var resultCount = 1
-    let call = client.listFeatures(Rectangle.getRootAsRectangle(bb: builder.buffer)) { feature in
+    let call = client.listFeatures(Rectangle.getRootAsRectangle(bb: builder.sizedBuffer)) { feature in
         print("Result #\(resultCount): \(feature)")
         resultCount += 1
     }
@@ -95,7 +95,7 @@ func listFeatures(
 /// a variable delay in between. Prints the statistics when they are sent from the server.
 public func recordRoute(
     using client: Routeguide_RouteGuideServiceClient,
-    features: Features,
+    features: [Feature],
     featuresToVisit: Int
 ) {
     print("→ RecordRoute")
@@ -118,10 +118,15 @@ public func recordRoute(
     }
     
     for _ in 0..<featuresToVisit {
-        let index = Int32.random(in: 0..<features.featureCount)
-        let point = features.feature(at: index)?.location  //features[index].location
+        let index = Int.random(in: 0..<features.count)
+        let point = features[index].location
         print("Visiting point \(point!.latitude), \(point!.longitude)")
-        call.sendMessage(point!, promise: nil)
+        let builder = FlatBufferBuilder()
+        let root = Point.createPoint(builder, latitude: point!.latitude, longitude: point!.longitude)
+        builder.finish(offset: root)
+        let _point = Point.getRootAsPoint(bb: builder.sizedBuffer)
+        builder.clear()
+        call.sendMessage(_point, promise: nil)
         
         // Sleep for a bit before sending the next one.
         Thread.sleep(forTimeInterval: TimeInterval.random(in: 0.5..<1.5))
@@ -162,7 +167,8 @@ func routeChat(using client: Routeguide_RouteGuideServiceClient) {
         let location = Point.createPoint(builder, latitude: Int32(latitude), longitude: Int32(longitude))
         let root = RouteNote.createRouteNote(builder, offsetOfLocation: location, offsetOfMessage: str)
         builder.finish(offset: root)
-        let note = RouteNote.getRootAsRouteNote(bb: builder.buffer)
+        let note = RouteNote.getRootAsRouteNote(bb: builder.sizedBuffer)
+        builder.clear()
         print("Sending message \"\(note.message!)\" at \(note.location!.latitude), \(note.location!.longitude)")
         call.sendMessage(note, promise: nil)
     }
