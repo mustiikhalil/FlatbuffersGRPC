@@ -17,21 +17,11 @@ let package = Package(
         .package(url: "https://github.com/grpc/grpc-swift.git", .branch("nio"))
     ],
     targets: [
-        // Model for the HelloWorld example
-        .target(
-            name: "FlatBuffersGRPC",
-            dependencies: [
-                "GRPC",
-                "FlatBuffers"
-            ],
-            path: "Sources/FlatBuffersGRPC"
-        ),
         .target(
             name: "FLATHelloWorldModel",
             dependencies: [
                 "GRPC",
-                "FlatBuffers",
-                "FlatBuffersGRPC"
+                "FlatBuffers"
             ],
             path: "Sources/HelloWorld/Model"
         ),
@@ -60,8 +50,7 @@ let package = Package(
             name: "FLATRouteGuideModel",
             dependencies: [
                 "GRPC",
-                "FlatBuffers",
-                "FlatBuffersGRPC"
+                "FlatBuffers"
             ],
             path: "Sources/RouteGuide/Model"
         ),

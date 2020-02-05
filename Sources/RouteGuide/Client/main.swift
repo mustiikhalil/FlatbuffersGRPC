@@ -41,19 +41,19 @@ func makeClient(port: Int, group: EventLoopGroup) -> Routeguide_RouteGuideServic
 /// Unary call example. Calls `getFeature` and prints the response.
 func getFeature(using client: Routeguide_RouteGuideServiceClient, latitude: Int, longitude: Int) {
     print("→ GetFeature: lat=\(latitude) lon=\(longitude)")
-    let builder = FlatBufferBuilder()
+    var builder = FlatBufferBuilder()
     let root = Point.createPoint(builder, latitude: Int32(latitude), longitude: Int32(longitude))
     builder.finish(offset: root)
-    let call = client.getFeature(Point.getRootAsPoint(bb: builder.sizedBuffer))
-    let feature: Feature
+    let call = client.getFeature(Message(builder: &builder))
+    let message: Message<Feature>
     
     do {
-        feature = try call.response.wait()
+        message = try call.response.wait()
     } catch {
         print("RPC failed: \(error)")
         return
     }
-    
+    let feature = message.object
     let lat = feature.location!.latitude
     let lon = feature.location!.longitude
     
@@ -74,14 +74,14 @@ func listFeatures(
     highLongitude: Int
 ) {
     print("→ ListFeatures: lowLat=\(lowLatitude) lowLon=\(lowLongitude), hiLat=\(highLatitude) hiLon=\(highLongitude)")
-    let builder = FlatBufferBuilder()
+    var builder = FlatBufferBuilder()
     let lo = Point.createPoint(builder, latitude: Int32(lowLatitude), longitude: Int32(lowLongitude))
     let hi = Point.createPoint(builder, latitude: Int32(highLatitude), longitude: Int32(highLongitude))
     let rec = Rectangle.createRectangle(builder, offsetOfLo: lo, offsetOfHi: hi)
     builder.finish(offset: rec)
     var resultCount = 1
-    let call = client.listFeatures(Rectangle.getRootAsRectangle(bb: builder.sizedBuffer)) { feature in
-        print("Result #\(resultCount): \(feature)")
+    let call = client.listFeatures(Message(builder: &builder)) { feature in
+        print("Result #\(resultCount): \(feature.object)")
         resultCount += 1
     }
     
@@ -102,7 +102,8 @@ public func recordRoute(
     let options = CallOptions(timeout: .minutes(rounding: 1))
     let call = client.recordRoute(callOptions: options)
     
-    call.response.whenSuccess { summary in
+    call.response.whenSuccess { o in
+        var summary = o.object
         print(
             "Finished trip with \(summary.pointCount) points. Passed \(summary.featureCount) features. " +
             "Travelled \(summary.distance) meters. It took \(summary.elapsedTime) seconds."
@@ -121,12 +122,10 @@ public func recordRoute(
         let index = Int.random(in: 0..<features.count)
         let point = features[index].location
         print("Visiting point \(point!.latitude), \(point!.longitude)")
-        let builder = FlatBufferBuilder()
+        var builder = FlatBufferBuilder()
         let root = Point.createPoint(builder, latitude: point!.latitude, longitude: point!.longitude)
         builder.finish(offset: root)
-        let _point = Point.getRootAsPoint(bb: builder.sizedBuffer)
-        builder.clear()
-        call.sendMessage(_point, promise: nil)
+        call.sendMessage(Message(builder: &builder), promise: nil)
         
         // Sleep for a bit before sending the next one.
         Thread.sleep(forTimeInterval: TimeInterval.random(in: 0.5..<1.5))
@@ -142,8 +141,9 @@ public func recordRoute(
 /// the server.
 func routeChat(using client: Routeguide_RouteGuideServiceClient) {
     print("→ RouteChat")
-    let builder = FlatBufferBuilder()
-    let call = client.routeChat { note in
+    var builder = FlatBufferBuilder()
+    let call = client.routeChat { object in
+        let note = object.object
         print("Got message \"\(note.message!)\" at \(note.location!.latitude), \(note.location!.longitude)")
     }
     
@@ -167,10 +167,9 @@ func routeChat(using client: Routeguide_RouteGuideServiceClient) {
         let location = Point.createPoint(builder, latitude: Int32(latitude), longitude: Int32(longitude))
         let root = RouteNote.createRouteNote(builder, offsetOfLocation: location, offsetOfMessage: str)
         builder.finish(offset: root)
-        let note = RouteNote.getRootAsRouteNote(bb: builder.sizedBuffer)
-        builder.clear()
+        let note = RouteNote.getRootAsRouteNote(bb: builder.buffer)
         print("Sending message \"\(note.message!)\" at \(note.location!.latitude), \(note.location!.longitude)")
-        call.sendMessage(note, promise: nil)
+        call.sendMessage(Message(builder: &builder), promise: nil)
     }
     // Mark the end of the stream.
     call.sendEnd(promise: nil)

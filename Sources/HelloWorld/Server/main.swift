@@ -14,17 +14,17 @@ import FLATHelloWorldModel
 
 class GreeterProvider: Helloworld_GreeterProvider {
   func sayHello(
-    request: HelloRequest,
+    request: Message<HelloRequest>,
     context: StatusOnlyCallContext
-  ) -> EventLoopFuture<HelloReply> {
+  ) -> EventLoopFuture<Message<HelloReply>> {
     
-    let recipient = request.name ?? "Stranger"
+    let recipient = request.object.name ?? "Stranger"
     
-    let builder = FlatBufferBuilder()
+    var builder = FlatBufferBuilder()
     let off = builder.create(string: recipient)
     let root = HelloReply.createHelloReply(builder, offsetOfMessage: off)
     builder.finish(offset: root)
-    return context.eventLoop.makeSucceededFuture(HelloReply.getRootAsHelloReply(bb: FlatBuffers.ByteBuffer(bytes: builder.sizedByteArray)))
+    return context.eventLoop.makeSucceededFuture(Message<HelloReply>(builder: &builder))
   }
 }
 

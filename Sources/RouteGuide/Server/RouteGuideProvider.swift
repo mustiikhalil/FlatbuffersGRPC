@@ -32,6 +32,7 @@ extension Point: Hashable {
 }
 
 class RouteGuideProvider: Routeguide_RouteGuideProvider {
+
   private let features: [Feature]
   private var notes: [Point: [RouteNote]] = [:]
   private var lock = Lock()
@@ -46,10 +47,11 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
   ///
   /// A feature with an empty name is returned if there's no feature at the given position.
   func getFeature(
-    request point: Point,
+    request point: Message<Point>,
     context: StatusOnlyCallContext
-  ) -> EventLoopFuture<Feature> {
-    return context.eventLoop.makeSucceededFuture(self.checkFeature(at: point))
+  ) -> EventLoopFuture<Message<Feature>> {
+    let check = self.checkFeature(at: point.object)
+    return context.eventLoop.makeSucceededFuture(Message(byteBuffer: check.buffer))
   }
 
   /// A server-to-client streaming RPC.
@@ -58,13 +60,14 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
   /// returned at once (e.g. in a response message with a repeated field), as the rectangle may
   /// cover a large area and contain a huge number of features.
   func listFeatures(
-    request: Rectangle,
-    context: StreamingResponseCallContext<Feature>
+    request: Message<Rectangle>,
+    context: StreamingResponseCallContext<Message<Feature>>
   ) -> EventLoopFuture<GRPCStatus> {
-    let left = min(request.lo!.longitude, request.hi!.longitude)
-    let right = max(request.lo!.longitude, request.hi!.longitude)
-    let top = max(request.lo!.latitude, request.hi!.latitude)
-    let bottom = max(request.lo!.latitude, request.hi!.latitude)
+    let req = request.object
+    let left = min(req.lo!.longitude, req.hi!.longitude)
+    let right = max(req.lo!.longitude, req.hi!.longitude)
+    let top = max(req.lo!.latitude, req.hi!.latitude)
+    let bottom = max(req.lo!.latitude, req.hi!.latitude)
 
     self.features.filter { (feature) -> Bool in
        guard let location = feature.location else { return false }
@@ -73,7 +76,7 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
             && location.latitude >= bottom
             && location.latitude <= top
     }.forEach {
-        _ = context.sendResponse($0)
+        _ = context.sendResponse(Message(byteBuffer: $0.buffer))
     }
 
     return context.eventLoop.makeSucceededFuture(.ok)
@@ -84,34 +87,34 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
   /// Accepts a stream of Points on a route being traversed, returning a RouteSummary when traversal
   /// is completed.
   func recordRoute(
-    context: UnaryResponseCallContext<RouteSummary>
-  ) -> EventLoopFuture<(StreamEvent<Point>) -> Void> {
+    context: UnaryResponseCallContext<Message<RouteSummary>>
+  ) -> EventLoopFuture<(StreamEvent<Message<Point>>) -> Void> {
     var pointCount: Int32 = 0
     var featureCount: Int32 = 0
     var distance = 0.0
     var previousPoint: Point?
     let startTime = Date()
-    let builder = FlatBufferBuilder()
+    var builder = FlatBufferBuilder()
     return context.eventLoop.makeSucceededFuture({ event in
       switch event {
       case .message(let point):
         pointCount += 1
-        if !(self.checkFeature(at: point).name?.isEmpty ?? true) {
+        if !(self.checkFeature(at: point.object).name?.isEmpty ?? true) {
           featureCount += 1
         }
 
         // For each point after the first, add the incremental distance from the previous point to
         // the total distance value.
         if let previous = previousPoint {
-          distance += previous.distance(to: point)
+            distance += previous.distance(to: point.object)
         }
-        previousPoint = point
+        previousPoint = point.object
 
       case .end:
         let seconds = Date().timeIntervalSince(startTime)
         let root = RouteSummary.createRouteSummary(builder, pointCount: pointCount, featureCount: featureCount, distance: Int32(distance), elapsedTime: Int32(seconds))
         builder.finish(offset: root)
-        context.responsePromise.succeed(RouteSummary.getRootAsRouteSummary(bb: builder.sizedBuffer))
+        context.responsePromise.succeed(Message(builder: &builder))
       }
     })
   }
@@ -121,25 +124,25 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
   /// Accepts a stream of RouteNotes sent while a route is being traversed, while receiving other
   /// RouteNotes (e.g. from other users).
   func routeChat(
-    context: StreamingResponseCallContext<RouteNote>
-  ) -> EventLoopFuture<(StreamEvent<RouteNote>) -> Void> {
+    context: StreamingResponseCallContext<Message<RouteNote>>
+  ) -> EventLoopFuture<(StreamEvent<Message<RouteNote>>) -> Void> {
     return context.eventLoop.makeSucceededFuture({ event in
       switch event {
       case .message(let note):
         // Get any notes at the location of request note.
         var notes = self.lock.withLock {
-            self.notes[note.location!, default: []]
+            self.notes[note.object.location!, default: []]
         }
 
         // Respond with all previous notes at this location.
         for note in notes {
-          _ = context.sendResponse(note)
+            _ = context.sendResponse(Message(byteBuffer: note.buffer))
         }
 
         // Add the new note and update the stored notes.
-        notes.append(note)
+        notes.append(note.object)
         self.lock.withLockVoid {
-          self.notes[note.location!] = notes
+            self.notes[note.object.location!] = notes
         }
 
       case .end:

@@ -20,16 +20,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-import FlatBuffersGRPC
 import Foundation
 import GRPC
 import NIO
 import NIOHTTP1
 import FlatBuffers
 
+public protocol GRPCFlatBufPayload: GRPCPayload, FlatBufferGRPCMessage {}
+
+public extension GRPCFlatBufPayload {
+    init(serializedByteBuffer: inout NIO.ByteBuffer) throws {
+        self.init(byteBuffer: FlatBuffers.ByteBuffer(bytes: Array(serializedByteBuffer.readableBytesView)))
+    }
+    
+    func serialize(into buffer: inout NIO.ByteBuffer) throws {
+        let buf = UnsafeRawBufferPointer(start: self.rawPointer, count: Int(self.size))
+        buffer.writeBytes(buf)
+    }
+}
+extension Message: GRPCFlatBufPayload {}
+
 /// Usage: instantiate Helloworld_GreeterServiceClient, then call methods of this protocol to make API calls.
 public protocol Helloworld_GreeterService {
-  func sayHello(_ request: HelloRequest, callOptions: CallOptions?) -> UnaryCall<HelloRequest, HelloReply>
+  func sayHello(_ request: Message<HelloRequest>, callOptions: CallOptions?) -> UnaryCall<Message<HelloRequest>, Message<HelloReply>>
 }
 
 public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_GreeterService {
@@ -52,7 +65,7 @@ public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_Greet
   ///   - request: Request to send to SayHello.
   ///   - callOptions: Call options; `self.defaultCallOptions` is used if `nil`.
   /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
-  public func sayHello(_ request: HelloRequest, callOptions: CallOptions? = nil) -> UnaryCall<HelloRequest, HelloReply> {
+  public func sayHello(_ request: Message<HelloRequest>, callOptions: CallOptions? = nil) -> UnaryCall<Message<HelloRequest>, Message<HelloReply>> {
     return self.makeUnaryCall(path: "/helloworld.Greeter/SayHello",
                               request: request,
                               callOptions: callOptions ?? self.defaultCallOptions)
@@ -62,7 +75,7 @@ public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_Greet
 //
 /// To build a server, implement a class that conforms to this protocol.
 public protocol Helloworld_GreeterProvider: CallHandlerProvider {
-  func sayHello(request: HelloRequest, context: StatusOnlyCallContext) -> EventLoopFuture<HelloReply>
+  func sayHello(request: Message<HelloRequest>, context: StatusOnlyCallContext) -> EventLoopFuture<Message<HelloReply>>
 }
 
 extension Helloworld_GreeterProvider {
@@ -83,5 +96,4 @@ extension Helloworld_GreeterProvider {
   }
 }
 
-extension HelloReply: GRPCFlatBufPayload {}
-extension HelloRequest: GRPCFlatBufPayload {}
+extension Message: GRPCFlatBufPayload {}

@@ -24,15 +24,28 @@ import Foundation
 import GRPC
 import NIO
 import NIOHTTP1
-import FlatBuffersGRPC
+import FlatBuffers
 
+public protocol GRPCFlatBufPayload: GRPCPayload, FlatBufferGRPCMessage {}
+
+public extension GRPCFlatBufPayload {
+    init(serializedByteBuffer: inout NIO.ByteBuffer) throws {
+        self.init(byteBuffer: FlatBuffers.ByteBuffer(bytes: Array(serializedByteBuffer.readableBytesView)))
+    }
+    
+    func serialize(into buffer: inout NIO.ByteBuffer) throws {
+        let buf = UnsafeRawBufferPointer(start: self.rawPointer, count: Int(self.size))
+        buffer.writeBytes(buf)
+    }
+}
+extension Message: GRPCFlatBufPayload {}
 
 /// Usage: instantiate Routeguide_RouteGuideServiceClient, then call methods of this protocol to make API calls.
 public protocol Routeguide_RouteGuideService {
-  func getFeature(_ request: Point, callOptions: CallOptions?) -> UnaryCall<Point, Feature>
-  func listFeatures(_ request: Rectangle, callOptions: CallOptions?, handler: @escaping (Feature) -> Void) -> ServerStreamingCall<Rectangle, Feature>
-  func recordRoute(callOptions: CallOptions?) -> ClientStreamingCall<Point, RouteSummary>
-  func routeChat(callOptions: CallOptions?, handler: @escaping (RouteNote) -> Void) -> BidirectionalStreamingCall<RouteNote, RouteNote>
+  func getFeature(_ request: Message<Point>, callOptions: CallOptions?) -> UnaryCall<Message<Point>, Message<Feature>>
+  func listFeatures(_ request: Message<Rectangle>, callOptions: CallOptions?, handler: @escaping (Message<Feature>) -> Void) -> ServerStreamingCall<Message<Rectangle>, Message<Feature>>
+  func recordRoute(callOptions: CallOptions?) -> ClientStreamingCall<Message<Point>, Message<RouteSummary>>
+  func routeChat(callOptions: CallOptions?, handler: @escaping (Message<RouteNote>) -> Void) -> BidirectionalStreamingCall<Message<RouteNote>, Message<RouteNote>>
 }
 
 public final class Routeguide_RouteGuideServiceClient: GRPCClient, Routeguide_RouteGuideService {
@@ -55,7 +68,7 @@ public final class Routeguide_RouteGuideServiceClient: GRPCClient, Routeguide_Ro
   ///   - request: Request to send to GetFeature.
   ///   - callOptions: Call options; `self.defaultCallOptions` is used if `nil`.
   /// - Returns: A `UnaryCall` with futures for the metadata, status and response.
-  public func getFeature(_ request: Point, callOptions: CallOptions? = nil) -> UnaryCall<Point, Feature> {
+  public func getFeature(_ request: Message<Point>, callOptions: CallOptions? = nil) -> UnaryCall<Message<Point>, Message<Feature>> {
     return self.makeUnaryCall(path: "/routeguide.RouteGuide/GetFeature",
                               request: request,
                               callOptions: callOptions ?? self.defaultCallOptions)
@@ -68,7 +81,7 @@ public final class Routeguide_RouteGuideServiceClient: GRPCClient, Routeguide_Ro
   ///   - callOptions: Call options; `self.defaultCallOptions` is used if `nil`.
   ///   - handler: A closure called when each response is received from the server.
   /// - Returns: A `ServerStreamingCall` with futures for the metadata and status.
-  public func listFeatures(_ request: Rectangle, callOptions: CallOptions? = nil, handler: @escaping (Feature) -> Void) -> ServerStreamingCall<Rectangle, Feature> {
+  public func listFeatures(_ request: Message<Rectangle>, callOptions: CallOptions? = nil, handler: @escaping (Message<Feature>) -> Void) -> ServerStreamingCall<Message<Rectangle>, Message<Feature>> {
     return self.makeServerStreamingCall(path: "/routeguide.RouteGuide/ListFeatures",
                                         request: request,
                                         callOptions: callOptions ?? self.defaultCallOptions,
@@ -83,7 +96,7 @@ public final class Routeguide_RouteGuideServiceClient: GRPCClient, Routeguide_Ro
   /// - Parameters:
   ///   - callOptions: Call options; `self.defaultCallOptions` is used if `nil`.
   /// - Returns: A `ClientStreamingCall` with futures for the metadata, status and response.
-  public func recordRoute(callOptions: CallOptions? = nil) -> ClientStreamingCall<Point, RouteSummary> {
+  public func recordRoute(callOptions: CallOptions? = nil) -> ClientStreamingCall<Message<Point>, Message<RouteSummary>> {
     return self.makeClientStreamingCall(path: "/routeguide.RouteGuide/RecordRoute",
                                         callOptions: callOptions ?? self.defaultCallOptions)
   }
@@ -97,7 +110,7 @@ public final class Routeguide_RouteGuideServiceClient: GRPCClient, Routeguide_Ro
   ///   - callOptions: Call options; `self.defaultCallOptions` is used if `nil`.
   ///   - handler: A closure called when each response is received from the server.
   /// - Returns: A `ClientStreamingCall` with futures for the metadata and status.
-  public func routeChat(callOptions: CallOptions? = nil, handler: @escaping (RouteNote) -> Void) -> BidirectionalStreamingCall<RouteNote, RouteNote> {
+  public func routeChat(callOptions: CallOptions? = nil, handler: @escaping (Message<RouteNote>) -> Void) -> BidirectionalStreamingCall<Message<RouteNote>, Message<RouteNote>> {
     return self.makeBidirectionalStreamingCall(path: "/routeguide.RouteGuide/RouteChat",
                                                callOptions: callOptions ?? self.defaultCallOptions,
                                                handler: handler)
@@ -107,10 +120,10 @@ public final class Routeguide_RouteGuideServiceClient: GRPCClient, Routeguide_Ro
 
 /// To build a server, implement a class that conforms to this protocol.
 public protocol Routeguide_RouteGuideProvider: CallHandlerProvider {
-  func getFeature(request: Point, context: StatusOnlyCallContext) -> EventLoopFuture<Feature>
-  func listFeatures(request: Rectangle, context: StreamingResponseCallContext<Feature>) -> EventLoopFuture<GRPCStatus>
-  func recordRoute(context: UnaryResponseCallContext<RouteSummary>) -> EventLoopFuture<(StreamEvent<Point>) -> Void>
-  func routeChat(context: StreamingResponseCallContext<RouteNote>) -> EventLoopFuture<(StreamEvent<RouteNote>) -> Void>
+  func getFeature(request: Message<Point>, context: StatusOnlyCallContext) -> EventLoopFuture<Message<Feature>>
+  func listFeatures(request: Message<Rectangle>, context: StreamingResponseCallContext<Message<Feature>>) -> EventLoopFuture<GRPCStatus>
+  func recordRoute(context: UnaryResponseCallContext<Message<RouteSummary>>) -> EventLoopFuture<(StreamEvent<Message<Point>>) -> Void>
+  func routeChat(context: StreamingResponseCallContext<Message<RouteNote>>) -> EventLoopFuture<(StreamEvent<Message<RouteNote>>) -> Void>
 }
 
 extension Routeguide_RouteGuideProvider {
@@ -148,11 +161,3 @@ extension Routeguide_RouteGuideProvider {
     }
   }
 }
-
-
-///// Provides conformance to `GRPCPayload` for the request and response messages
-extension Point: GRPCFlatBufPayload {}
-extension Feature: GRPCFlatBufPayload {}
-extension Rectangle: GRPCFlatBufPayload {}
-extension RouteSummary: GRPCFlatBufPayload {}
-extension RouteNote: GRPCFlatBufPayload {}
