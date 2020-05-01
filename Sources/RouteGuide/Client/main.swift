@@ -29,20 +29,17 @@ LoggingSystem.bootstrap {
 
 /// Makes a `RouteGuide` client for a service hosted on "localhost" and listening on the given port.
 func makeClient(port: Int, group: EventLoopGroup) -> Routeguide_RouteGuideServiceClient {
-    let config = ClientConnection.Configuration(
-        target: .hostAndPort("localhost", port),
-        eventLoopGroup: group
-    )
-    
-    let connection = ClientConnection(configuration: config)
-    return Routeguide_RouteGuideServiceClient(connection: connection)
+  let channel = ClientConnection.insecure(group: group)
+    .connect(host: "localhost", port: port)
+
+  return Routeguide_RouteGuideServiceClient(channel: channel)
 }
 
 /// Unary call example. Calls `getFeature` and prints the response.
 func getFeature(using client: Routeguide_RouteGuideServiceClient, latitude: Int, longitude: Int) {
     print("→ GetFeature: lat=\(latitude) lon=\(longitude)")
     var builder = FlatBufferBuilder()
-    let root = Point.createPoint(builder, latitude: Int32(latitude), longitude: Int32(longitude))
+    let root = Point.createPoint(&builder, latitude: Int32(latitude), longitude: Int32(longitude))
     builder.finish(offset: root)
     let call = client.getFeature(Message(builder: &builder))
     let message: Message<Feature>
@@ -75,9 +72,9 @@ func listFeatures(
 ) {
     print("→ ListFeatures: lowLat=\(lowLatitude) lowLon=\(lowLongitude), hiLat=\(highLatitude) hiLon=\(highLongitude)")
     var builder = FlatBufferBuilder()
-    let lo = Point.createPoint(builder, latitude: Int32(lowLatitude), longitude: Int32(lowLongitude))
-    let hi = Point.createPoint(builder, latitude: Int32(highLatitude), longitude: Int32(highLongitude))
-    let rec = Rectangle.createRectangle(builder, offsetOfLo: lo, offsetOfHi: hi)
+    let lo = Point.createPoint(&builder, latitude: Int32(lowLatitude), longitude: Int32(lowLongitude))
+    let hi = Point.createPoint(&builder, latitude: Int32(highLatitude), longitude: Int32(highLongitude))
+    let rec = Rectangle.createRectangle(&builder, offsetOfLo: lo, offsetOfHi: hi)
     builder.finish(offset: rec)
     var resultCount = 1
     let call = client.listFeatures(Message(builder: &builder)) { feature in
@@ -103,7 +100,7 @@ public func recordRoute(
     let call = client.recordRoute(callOptions: options)
     
     call.response.whenSuccess { o in
-        var summary = o.object
+        let summary = o.object
         print(
             "Finished trip with \(summary.pointCount) points. Passed \(summary.featureCount) features. " +
             "Travelled \(summary.distance) meters. It took \(summary.elapsedTime) seconds."
@@ -123,7 +120,7 @@ public func recordRoute(
         let point = features[index].location
         print("Visiting point \(point!.latitude), \(point!.longitude)")
         var builder = FlatBufferBuilder()
-        let root = Point.createPoint(builder, latitude: point!.latitude, longitude: point!.longitude)
+        let root = Point.createPoint(&builder, latitude: point!.latitude, longitude: point!.longitude)
         builder.finish(offset: root)
         call.sendMessage(Message(builder: &builder), promise: nil)
         
@@ -164,8 +161,8 @@ func routeChat(using client: Routeguide_RouteGuideServiceClient) {
     
     for (message, latitude, longitude) in noteContent {
         let str = builder.create(string: message)
-        let location = Point.createPoint(builder, latitude: Int32(latitude), longitude: Int32(longitude))
-        let root = RouteNote.createRouteNote(builder, offsetOfLocation: location, offsetOfMessage: str)
+        let location = Point.createPoint(&builder, latitude: Int32(latitude), longitude: Int32(longitude))
+        let root = RouteNote.createRouteNote(&builder, offsetOfLocation: location, offsetOfMessage: str)
         builder.finish(offset: root)
         let note = RouteNote.getRootAsRouteNote(bb: builder.buffer)
         print("Sending message \"\(note.message!)\" at \(note.location!.latitude), \(note.location!.longitude)")
@@ -196,7 +193,7 @@ func main(args: [String]) throws {
     // Make a client, make sure we close it when we're done.
     let routeGuide = makeClient(port: port, group: group)
     defer {
-        try? routeGuide.connection.close().wait()
+        try? routeGuide.channel.close().wait()
     }
     
     // Look for a valid feature.

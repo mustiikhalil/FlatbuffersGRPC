@@ -30,9 +30,8 @@ public protocol GRPCFlatBufPayload: GRPCPayload, FlatBufferGRPCMessage {}
 
 public extension GRPCFlatBufPayload {
     init(serializedByteBuffer: inout NIO.ByteBuffer) throws {
-        self.init(byteBuffer: FlatBuffers.ByteBuffer(bytes: Array(serializedByteBuffer.readableBytesView)))
+        self.init(byteBuffer: FlatBuffers.ByteBuffer(contiguousBytes: serializedByteBuffer.readableBytesView, count: serializedByteBuffer.readableBytes))
     }
-    
     func serialize(into buffer: inout NIO.ByteBuffer) throws {
         let buf = UnsafeRawBufferPointer(start: self.rawPointer, count: Int(self.size))
         buffer.writeBytes(buf)
@@ -46,16 +45,17 @@ public protocol Helloworld_GreeterService {
 }
 
 public final class Helloworld_GreeterServiceClient: GRPCClient, Helloworld_GreeterService {
-  public let connection: ClientConnection
+    
+  public var channel: GRPCChannel
   public var defaultCallOptions: CallOptions
 
   /// Creates a client for the helloworld.Greeter service.
   ///
   /// - Parameters:
-  ///   - connection: `ClientConnection` to the service host.
+  ///   - channel: `GRPCChannel` to the service host.
   ///   - defaultCallOptions: Options to use for each service call if the user doesn't provide them.
-  public init(connection: ClientConnection, defaultCallOptions: CallOptions = CallOptions()) {
-    self.connection = connection
+  public init(channel: GRPCChannel, defaultCallOptions: CallOptions = CallOptions()) {
+    self.channel = channel
     self.defaultCallOptions = defaultCallOptions
   }
 
@@ -95,5 +95,3 @@ extension Helloworld_GreeterProvider {
     }
   }
 }
-
-extension Message: GRPCFlatBufPayload {}

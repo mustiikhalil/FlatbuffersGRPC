@@ -50,8 +50,12 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
     request point: Message<Point>,
     context: StatusOnlyCallContext
   ) -> EventLoopFuture<Message<Feature>> {
+    let buffer = point.object.__buffer
+    let array = UnsafeMutableRawBufferPointer(start: buffer!.memory, count: Int(buffer!.size))
+    print(Array(array))
+//    p.__buffer.
     let check = self.checkFeature(at: point.object)
-    return context.eventLoop.makeSucceededFuture(Message(byteBuffer: check.buffer))
+    return context.eventLoop.makeSucceededFuture(Message(byteBuffer: check.__buffer))
   }
 
   /// A server-to-client streaming RPC.
@@ -76,7 +80,7 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
             && location.latitude >= bottom
             && location.latitude <= top
     }.forEach {
-        _ = context.sendResponse(Message(byteBuffer: $0.buffer))
+        _ = context.sendResponse(Message(byteBuffer: $0.__buffer))
     }
 
     return context.eventLoop.makeSucceededFuture(.ok)
@@ -112,7 +116,7 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
 
       case .end:
         let seconds = Date().timeIntervalSince(startTime)
-        let root = RouteSummary.createRouteSummary(builder, pointCount: pointCount, featureCount: featureCount, distance: Int32(distance), elapsedTime: Int32(seconds))
+        let root = RouteSummary.createRouteSummary(&builder, pointCount: pointCount, featureCount: featureCount, distance: Int32(distance), elapsedTime: Int32(seconds))
         builder.finish(offset: root)
         context.responsePromise.succeed(Message(builder: &builder))
       }
@@ -136,7 +140,7 @@ class RouteGuideProvider: Routeguide_RouteGuideProvider {
 
         // Respond with all previous notes at this location.
         for note in notes {
-            _ = context.sendResponse(Message(byteBuffer: note.buffer))
+            _ = context.sendResponse(Message(byteBuffer: note.__buffer))
         }
 
         // Add the new note and update the stored notes.
@@ -161,6 +165,7 @@ extension RouteGuideProvider {
 
   /// Returns a feature at the given location or an unnamed feature if none exist at that location.
   private func checkFeature(at location: Point) -> Feature {
+    print("should be here: \(location.latitude), \(location.longitude)")
     for feature in self.features {
         if feature.location?.latitude == location.latitude && feature.location?.longitude == location.longitude {
             return feature
@@ -170,10 +175,10 @@ extension RouteGuideProvider {
   }
     
     private func buildFeature(location: Point) -> Feature {
-        let builder = FlatBufferBuilder()
+        var builder = FlatBufferBuilder()
         let off = builder.create(string: "")
-        let point = Point.createPoint(builder, latitude: location.latitude, longitude: location.longitude)
-        let root = Feature.createFeature(builder, offsetOfName: off, offsetOfLocation: point)
+        let point = Point.createPoint(&builder, latitude: location.latitude, longitude: location.longitude)
+        let root = Feature.createFeature(&builder, offsetOfName: off, offsetOfLocation: point)
         builder.finish(offset: root)
         return Feature.getRootAsFeature(bb: builder.sizedBuffer)
     }
@@ -208,4 +213,3 @@ fileprivate extension Point {
     return radius * c
   }
 }
-

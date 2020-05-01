@@ -30,7 +30,7 @@ func greet(name: String?, client greeter: Helloworld_GreeterServiceClient) {
     // Form the request with the name, if one was provided.
     var builder = FlatBufferBuilder()
     let name = builder.create(string: name ?? "Hi")
-    let root = HelloRequest.createHelloRequest(builder)
+    let root = HelloRequest.createHelloRequest(&builder, offsetOfName: name)
     builder.finish(offset: root)
     
     // Make the RPC call to the server.
@@ -45,43 +45,35 @@ func greet(name: String?, client greeter: Helloworld_GreeterServiceClient) {
 }
 
 func main(args: [String]) {
-    // arg0 (dropped) is the program name. We expect arg1 to be the port, and arg2 (optional) to be
-    // the name sent in the request.
-    let arg1 = args.dropFirst(1).first
-    let arg2 = args.dropFirst(2).first
-    
-    switch (arg1.flatMap(Int.init), arg2) {
-    case (.none, _):
-        print("Usage: PORT [NAME]")
-        exit(1)
-        
-    case let (.some(port), name):
-        // Setup an `EventLoopGroup` for the connection to run on.
-        //
-        // See: https://github.com/apple/swift-nio#eventloops-and-eventloopgroups
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        
-        // Make sure the group is shutdown when we're done with it.
-        defer {
-            try! group.syncShutdownGracefully()
-        }
-        
-        // Provide some basic configuration for the connection, in this case we connect to an endpoint on
-        // localhost at the given port.
-        let configuration = ClientConnection.Configuration(
-            target: .hostAndPort("localhost", port),
-            eventLoopGroup: group
-        )
-        
-        // Create a connection using the configuration.
-        let connection = ClientConnection(configuration: configuration)
-        
-        // Provide the connection to the generated client.
-        let greeter = Helloworld_GreeterServiceClient(connection: connection)
-        
-        // Do the greeting.
-        greet(name: name, client: greeter)
-    }
+     let arg1 = args.dropFirst(1).first
+     let arg2 = args.dropFirst(2).first
+     
+     switch (arg1.flatMap(Int.init), arg2) {
+     case (.none, _):
+         print("Usage: PORT [NAME]")
+         exit(1)
+         
+     case let (.some(port), name):
+         // Setup an `EventLoopGroup` for the connection to run on.
+         //
+         // See: https://github.com/apple/swift-nio#eventloops-and-eventloopgroups
+         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+         
+         // Make sure the group is shutdown when we're done with it.
+         defer {
+             try! group.syncShutdownGracefully()
+         }
+         
+         // Configure the channel, we're not using TLS so the connection is `insecure`.
+         let channel = ClientConnection.insecure(group: group)
+           .connect(host: "localhost", port: port)
+         
+         // Provide the connection to the generated client.
+         let greeter = Helloworld_GreeterServiceClient(channel: channel)
+         
+         // Do the greeting.
+         greet(name: name ?? "Hello FlatBuffers!", client: greeter)
+     }
 }
 
 main(args: CommandLine.arguments)

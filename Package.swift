@@ -14,7 +14,7 @@ let package = Package(
     dependencies: [
         // Main SwiftNIO package
         .package(path: "../flatbuffers/swift"),
-        .package(url: "https://github.com/grpc/grpc-swift.git", .branch("nio"))
+        .package(url: "https://github.com/grpc/grpc-swift.git", from: "1.0.0-alpha.11")
     ],
     targets: [
         .target(

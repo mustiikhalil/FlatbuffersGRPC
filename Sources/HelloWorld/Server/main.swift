@@ -22,7 +22,7 @@ class GreeterProvider: Helloworld_GreeterProvider {
     
     var builder = FlatBufferBuilder()
     let off = builder.create(string: recipient)
-    let root = HelloReply.createHelloReply(builder, offsetOfMessage: off)
+    let root = HelloReply.createHelloReply(&builder, offsetOfMessage: off)
     builder.finish(offset: root)
     return context.eventLoop.makeSucceededFuture(Message<HelloReply>(builder: &builder))
   }
@@ -59,3 +59,4 @@ server.map {
 _ = try server.flatMap {
   $0.onClose
 }.wait()
+

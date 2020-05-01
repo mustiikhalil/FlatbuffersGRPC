@@ -21,42 +21,39 @@ import Logging
 
 // Quieten the logs.
 LoggingSystem.bootstrap {
-    var handler = StreamLogHandler.standardOutput(label: $0)
-    handler.logLevel = .critical
-    return handler
+  var handler = StreamLogHandler.standardOutput(label: $0)
+  handler.logLevel = .critical
+  return handler
 }
 
 func main(args: [String]) throws {
-    // Create an event loop group for the server to run on.
-    let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-    defer {
-        try! group.syncShutdownGracefully()
-    }
-    
-    // Read the feature database.
-    let features = try loadFeatures()
-    // Create a provider using the features we read.
-    let provider = RouteGuideProvider(features: features)
-    
-    // Tie these together in some configuration:
-    let configuration = Server.Configuration(
-        target: .hostAndPort("localhost", 0),
-        eventLoopGroup: group,
-        serviceProviders: [provider]
-    )
-    
-    // Start the server and print its address once it has started.
-    let server = Server.start(configuration: configuration)
-    server.map {
-        $0.channel.localAddress
-    }.whenSuccess { address in
-        print("server started on port \(address!.port!)")
-    }
-    
-    // Wait on the server's `onClose` future to stop the program from exiting.
-    _ = try server.flatMap {
-        $0.onClose
-    }.wait()
+  // Create an event loop group for the server to run on.
+  let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+  defer {
+    try! group.syncShutdownGracefully()
+  }
+
+  // Read the feature database.
+  let features = try loadFeatures()
+  
+  // Create a provider using the features we read.
+  let provider = RouteGuideProvider(features: features)
+
+  // Start the server and print its address once it has started.
+  let server = Server.insecure(group: group)
+    .withServiceProviders([provider])
+    .bind(host: "localhost", port: 0)
+
+  server.map {
+    $0.channel.localAddress
+  }.whenSuccess { address in
+    print("server started on port \(address!.port!)")
+  }
+
+  // Wait on the server's `onClose` future to stop the program from exiting.
+  _ = try server.flatMap {
+    $0.onClose
+  }.wait()
 }
 
 try main(args: CommandLine.arguments)

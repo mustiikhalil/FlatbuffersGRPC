@@ -26,13 +26,13 @@ public func loadFeatures() throws -> [Feature] {
     
     let data = try Data(contentsOf: url)
     let features = try JSONDecoder().decode([_Feature_].self, from: data)
-    let builder = FlatBufferBuilder()
+    var builder = FlatBufferBuilder()
     var flatFeatures: [Feature] = []
     
     features.forEach { (f) in
         let str = builder.create(string: f.name)
-        let point = Point.createPoint(builder, latitude: f.location.latitude, longitude: f.location.longitude)
-        let feature = Feature.createFeature(builder, offsetOfName: str, offsetOfLocation: point)
+        let point = Point.createPoint(&builder, latitude: f.location.latitude, longitude: f.location.longitude)
+        let feature = Feature.createFeature(&builder, offsetOfName: str, offsetOfLocation: point)
         builder.finish(offset: feature)
         flatFeatures.append(Feature.getRootAsFeature(bb: builder.sizedBuffer))
         builder.clear()
