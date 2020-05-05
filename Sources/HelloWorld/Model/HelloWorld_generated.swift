@@ -24,7 +24,7 @@ public struct HelloRequest: FlatBufferObject {
     public var name: String? { let o = _accessor.offset(4); return o == 0 ? nil : _accessor.string(at: o) }
     public var nameSegmentArray: [UInt8]? { return _accessor.getVector(at: 4) }
     public static func startHelloRequest(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 1) }
-    public static func add(name: Offset<String>, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: name, at: 0)  }
+    public static func add(name: Offset<String>, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: name, at: 4)  }
     public static func endHelloRequest(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset<UOffset> { let end = Offset<UOffset>(offset: fbb.endTable(at: start)); return end }
     public static func createHelloRequest(_ fbb: inout FlatBufferBuilder,
         offsetOfName name: Offset<String> = Offset()) -> Offset<UOffset> {
@@ -47,7 +47,7 @@ public struct HelloReply: FlatBufferObject {
     public var message: String? { let o = _accessor.offset(4); return o == 0 ? nil : _accessor.string(at: o) }
     public var messageSegmentArray: [UInt8]? { return _accessor.getVector(at: 4) }
     public static func startHelloReply(_ fbb: inout FlatBufferBuilder) -> UOffset { fbb.startTable(with: 1) }
-    public static func add(message: Offset<String>, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: message, at: 0)  }
+    public static func add(message: Offset<String>, _ fbb: inout FlatBufferBuilder) { fbb.add(offset: message, at: 4)  }
     public static func endHelloReply(_ fbb: inout FlatBufferBuilder, start: UOffset) -> Offset<UOffset> { let end = Offset<UOffset>(offset: fbb.endTable(at: start)); return end }
     public static func createHelloReply(_ fbb: inout FlatBufferBuilder,
         offsetOfMessage message: Offset<String> = Offset()) -> Offset<UOffset> {
